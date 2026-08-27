@@ -1,0 +1,51 @@
+services:
+
+  speedtest-tracker:
+    image: lscr.io/linuxserver/speedtest-tracker:${SPEEDTEST_TRACKER_VERSION:-latest}
+    depends_on: [database]
+    env_file: environment.d/speedtest-tracker.env
+    environment:
+      APP_URL: ${APP_URL}
+      APP_KEY: ${APP_KEY}
+      DB_CONNECTION: ${DATABASE_CONNECTION:-pgsql}
+      DB_HOST: ${DATABASE_HOST:-database}
+      DB_PORT: ${DATABASE_PORT:-5432}
+      DB_DATABASE: ${DATABASE_NAME:-speedtest-tracker}
+      DB_USERNAME: ${DATABASE_USER:-speedtest-tracker}
+      DB_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - ${SPEEDTEST_TRACKER_PORT:-8080}:80
+    volumes:
+      - ${SPEEDTEST_TRACKER_DATA_VOLUME:-speedtest-tracker-data}:/config
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+
+  database:
+    image: postgres:${POSTGRES_IMAGE_VERSION:-18}
+    env_file: environment.d/postgres.env
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-speedtest-tracker}
+      POSTGRES_USER: ${DATABASE_USER:-speedtest-tracker}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - ${DATABASE_VOLUME:-postgres-data}:/var/lib/postgresql
+      - /etc/localtime:/etc/localtime:ro
+    labels:
+      com.centurylinklabs.watchtower.scope: ${COMPOSE_PROJECT_NAME}
+    restart: unless-stopped
+
+  watchtower:
+    image: nickfedor/watchtower:${WATCHTOWER_VERSION:-latest}
+    env_file: environment.d/watchtower.env
+    environment:
+      WATCHTOWER_SCOPE: ${COMPOSE_PROJECT_NAME}
+    volumes:
+      - ${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime:ro
+    labels:
+      com.centurylinklabs.watchtower.scope: ${COMPOSE_PROJECT_NAME}
+    restart: unless-stopped
+
+volumes:
+  postgres-data: {}
+  speedtest-tracker-data: {}
